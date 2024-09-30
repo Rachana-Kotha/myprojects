@@ -1,0 +1,774 @@
+---
+title: "MKTG 6620_090_ML Project"
+author: "Rachana Kotha (u1448360)", "Rahul Prabhu (u1448395)"
+date: "2023-11-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Importing Libraries
+
+```{r}
+
+
+
+library(ISLR)
+library(skimr)
+library(ggplot2) 
+library(GGally) 
+library(caret) 
+library(randomForest)
+library(glmnet)
+library(xgboost) 
+library(pdp) 
+library(caret)
+library(tidymodels)
+library(vip)
+library(DALEXtra)
+library(tictoc)
+library(rmarkdown)
+library(psych)
+library(scatterplot3d)
+library(dplyr)
+library(knitr)
+library(tidyverse)
+library(pROC)
+library(yardstick)
+library(gridExtra)
+```
+
+# Data preparation and Pre-processing
+
+```{r}
+OJ<-read.csv(url("http://data.mishra.us/files/project/OJ_data.csv"))
+OJ[2:14] <- lapply(OJ[2:14], as.numeric)
+OJ$Purchase <- as.factor(OJ$Purchase)
+
+# Converting SpecialMM & SpecialMM to factor
+
+OJ$SpecialCH<-as.factor(OJ$SpecialCH)
+OJ$SpecialMM<-as.factor(OJ$SpecialMM)
+sapply(OJ,class)
+
+summary(OJ)
+```
+
+# Data distribution for categorical variables
+
+```{r}
+# Checking the data value distribution for all the categorical variables.
+
+prop.table(table(OJ$SpecialCH))
+prop.table(table(OJ$SpecialMM))
+prop.table(table(OJ$Purchase))
+
+str(OJ)
+```
+
+# Outlier detection for Numeric Variables
+
+```{r warning=FALSE}
+
+variables <- c("PriceMM", "DiscCH", "DiscMM", "LoyalCH", "SalePriceMM",
+               "SalePriceCH", "PriceDiff", "PctDiscMM", "PctDiscCH", "ListPriceDiff")
+
+plot_list <- list()
+for (i in variables){
+  p <- ggplot(OJ, aes_string(y = i)) +
+  geom_boxplot() +
+  ggtitle(i)
+  plot_list[[i]] <- p
+}
+
+grid.arrange(grobs = plot_list, ncol = 5)
+```
+
+# Target Variable Modification
+
+```{r}
+
+# Since we are focusing on improving the sales of Minute Maid, we will modify the Purchase variable to reflect 1 when Minute Maid was purchased and 0 when Minute Maid was not purchased. This new inference is stored is the same variable 'Purchase'.
+
+cat("Before Modification\n")
+prop.table(table(OJ$Purchase))
+
+OJ$Purchase <- as.factor(ifelse(OJ$Purchase == 0, 1, 0))
+
+cat("\nAfter Modification\n" )
+prop.table(table(OJ$Purchase))
+```
+
+# Multicollinearity and Pre-processing
+
+```{r}
+# We are using the cor() function to check the correlation for all the numerical varibales to identify multicollinearity among the variables.
+
+numericCols<-OJ[c(2,3,4,5,8,9,10,11,12,13,14)]
+correlations <- cor(numericCols)
+correlations
+
+```
+
+## Correlation check using Pair.panels
+
+```{r}
+# Using pair.panels() to produce a matrix of plots for visualizing the correlation between variables.
+
+pairs.panels(numericCols)
+```
+
+## Observation
+Based on the process of elimination where correlation \> 0.7, we identified following pairs of collinearity variables:
+
+|  Variable   | Correlation                    |          Value           |
+|:-----------:|:------------------------------:|:------------------------:|
+| SalePriceMM | DiscMM                         |         -0.8468          |
+| SalePriceCH | DiscCH                         |         -0.7112          |
+|  PriceDiff  | DiscMM, SalePriceMM, PctDiscMM | -0.8239, 0.8527, -0.8280 |
+|  PctDiscMM  | DiscMM, SalePriceMM,PriceDiff  | 0.9987, -0.8567, -0.8280 |
+|  PctDiscCH  | DiscCH, SalePriceCH            |     0.9990, -0.7227      |
+
+Considering the result from correlation and pair.panles, if we eliminate the collinear pairs we get
+
+**Feature_set_1 \<- PriceCH + LoyalCH + PctDiscMM + PctDiscCH + ListPriceDiff**
+
+# Prepare train and test data for Logistic Model
+
+```{r}
+# Splitting the dataset into training and testing datasets and creating a basic model to observe variable importance in the dataset and generate a feature list.
+
+# During model training, we preprocess the data by centering and scaling to mitigate overfitting.
+
+split=0.70
+set.seed(1237)
+
+train_index <- sample(1:nrow(OJ), split * nrow(OJ)) 
+test_index <- setdiff(1:nrow(OJ), train_index)
+
+train_data <- OJ[train_index, ]
+test_data <- OJ[test_index,]
+
+# Preparing the training scheme
+tr_control <- trainControl(method="repeatedcv", number=8, repeats=3)
+
+# training the initial model
+model <- train(Purchase ~ ., data=train_data, method="lvq", preProcess=c("center","scale"), trControl=tr_control)
+
+# estimate variable importance
+var_importance <- varImp(model, scale=FALSE)
+
+# summarize importance
+print(var_importance)
+
+# plot importance
+plot(var_importance)
+```
+## Observation
+
+Based on the above results of estimating variable importance from our Learning Vector Quantization (LVQ) model and multi collinear pairs from the pair.panels, we can understand that few variables are of importance and the rest can be removed from our modelling purposes.
+
+"LoyalCH" "PriceDiff" "ListPriceDiff" "SpecialMM" "PriceMM" "SpecialCH" "SalePriceCH"
+
+We will use this to form the second feature set for our prediction.
+
+**Feature_set_2 \<- LoyalCH + PriceDiff + ListPriceDiff + SpecialMM + PriceMM + SpecialCH + SalePriceCH**
+
+# Random Forest Recursive Feature Elimination
+
+```{r}
+
+# We are employing the Recursive Feature Elimination (RFE) algorithm to explore all the possible subsets of attributes.
+
+set.seed(1234)
+rfe_ctrl <- rfeControl(functions = rfFuncs,method = "repeatedcv",repeats = 5,verbose = FALSE)
+
+rfe_pred <- rfe(train_data[,2:14], train_data[,1], sizes = 2:14, rfeControl = rfe_ctrl)
+
+# Print the chosen features
+print(predictors(rfe_pred))
+```
+
+## Observation
+Based on the above results of Recursive Feature Elimination (RFE) algorithm we get that only "LoyalCH" and "PriceDiff" are the variables which are significant. So, we will make that as our Feature set 3.
+
+**Feature_set_3 \<- LoyalCH + PriceDiff**
+
+
+# Logistic regression
+For regression analysis, we opted for logistic regression because it is the suitable method when dealing with a binary dependent variable. Logistic regression is employed to characterize data and elucidate the association between a single binary dependent variable and one or more independent variables of nominal, ordinal, interval, or ratio levels
+
+
+## Logistic Model 1 (Feature Set 1)
+
+```{r}
+#For model 1, we will be considering Feature_set_1 as the predictors while training the model.
+
+log_model1 <- train(Purchase ~ PriceCH + LoyalCH + PctDiscMM + PctDiscCH + ListPriceDiff, data = train_data,
+                       method = "glm", preProcess=c("center","scale"), family = "binomial", trControl=tr_control)
+summary(log_model1)
+
+model1_coefficients <- coef(log_model1$finalModel)
+model1_odds_ratios <- exp(model1_coefficients)
+
+# Print the odds ratios
+print(model1_odds_ratios)
+
+# Printing the accuracy of the model
+cat("Accuracy of Model 1:", log_model1$results$Accuracy)
+```
+AIC VALUE FOR MODEL 1: **612.68**
+
+### Explanation of Model Coefficients:
+
+i. **Intercept**:
+Estimate: -0.84160
+This is the log-odds of 'Purchase' when all predictor variables are zero.
+The odds ratio is 0.431, implying that the odds of purchase decrease by about 57% when all other predictors are zero.
+
+ii. **PriceCH**:
+Estimate: 0.11877
+This suggests that a one-unit increase in 'PriceCH' is associated with an increase of 0.11877 in the log-odds of 'Purchase'.
+The odds ratio is 1.126, indicating that a one-unit increase in 'PriceCH' is associated with a 12.6% increase in the odds of purchase of MM.
+
+iii. **LoyalCH**:
+Estimate: -1.87169
+For every one-unit increase in 'LoyalCH', the log-odds of 'Purchase' decrease by 1.87169.
+The odds ratio is 0.154, suggesting that a one-unit increase in 'LoyalCH' is associated with a 85.4% decrease in the odds of purchase of MM.
+
+iv. **PctDiscMM**:
+Estimate: 0.41751
+A one-unit increase in 'PctDiscMM' is associated with an increase of 0.41751 in the log-odds of 'Purchase'.
+The odds ratio is 1.518, indicating that a one-unit increase in 'PctDiscMM' is associated with a 51.8% increase in the odds of purchase of MM.
+
+v. **PctDiscCH**:
+Estimate: -0.55438
+A one-unit increase in 'PctDiscCH' is associated with a decrease of 0.55438 in the log-odds of 'Purchase'.
+The odds ratio is 0.574, suggesting that a one-unit increase in 'PctDiscCH' is associated with a 42.6% decrease in the odds of purchase of MM.
+
+vi. **ListPriceDiff**:
+Estimate: -0.36024
+A one-unit increase in 'ListPriceDiff' is associated with a decrease of 0.36024 in the log-odds of 'Purchase'.
+The odds ratio is 0.698, indicating that a one-unit increase in 'ListPriceDiff' is associated with a 30.2% decrease in the odds of purchase of MM.
+
+
+## Logistic Model 2 (Feature Set 2)
+
+```{r}
+#For model 2, we will be considering Feature_set_2 as the predictors while training the model.
+
+log_model2 <- train(Purchase ~ LoyalCH + PriceDiff + ListPriceDiff + SpecialMM + PriceMM + SpecialCH + SalePriceCH, data = train_data, method = "glm",preProcess=c("center","scale"), family = "binomial",trControl=tr_control)
+
+summary(log_model2)
+
+model2_coefficients <- coef(log_model2$finalModel)
+model2_odds_ratios <- exp(model2_coefficients)
+
+# Print the odds ratios
+print(model2_odds_ratios)
+
+
+cat("Accuracy of Model 2:", log_model2$results$Accuracy)
+```
+AIC VALUE FOR MODEL 2: **614.06**
+
+### Explanation of Model Coefficents:
+
+i. Intercept:
+Estimate: -0.845091
+The odds ratio is 0.4295, implying that the odds of purchase decrease by about 57.1% when all other predictors are zero.
+
+ii. LoyalCH:
+Estimate: -1.861201
+The odds ratio is 0.1555, suggesting that a one-unit increase in 'LoyalCH' is associated with an 84.5% decrease in the odds of purchase.
+
+iii. PriceDiff:
+Estimate: -0.523180
+The odds ratio is 0.5926, indicating that a one-unit increase in 'PriceDiff' is associated with a 40.7% decrease in the odds of purchase.
+
+iv. ListPriceDiff:
+Estimate: -0.003857
+The odds ratio is close to 1 (0.9962), suggesting that 'ListPriceDiff' has a minimal impact on the odds of purchase.
+
+v. SpecialMM1:
+Estimate: 0.091040
+The odds ratio is 1.0953, indicating that 'SpecialMM1' is associated with a 9.5% increase in the odds of purchase.
+
+vi. PriceMM:
+Estimate: -0.191876
+The odds ratio is 0.8254, suggesting that a one-unit increase in 'PriceMM' is associated with a 17.5% decrease in the odds of purchase.
+
+vii. SpecialCH1:
+Estimate: -0.092749
+The odds ratio is 0.9114, indicating that 'SpecialCH1' is associated with a 8.9% decrease in the odds of purchase.
+
+viii. SalePriceCH:
+Estimate: 0.352265
+The odds ratio is 1.4223, suggesting that 'SalePriceCH' is associated with a 42.2% increase in the odds of purchase.
+
+
+## Logistic Model 3 (Feature Set 3)
+
+```{r}
+#For model 3, we will be considering Feature_set_3 as the predictors while training the model.
+
+log_model3 <- train(Purchase ~ LoyalCH + PriceDiff, data = train_data, method = "glm", preProcess = c("center","scale"), family = "binomial",trControl=tr_control)
+
+summary(log_model3)
+
+
+model3_coefficients <- coef(log_model3$finalModel)
+model3_odds_ratios <- exp(model3_coefficients)
+
+# Print the odds ratios
+print(model3_odds_ratios)
+
+cat("Accuracy of Model 3:", log_model3$results$Accuracy)
+
+```
+AIC VALUE FOR MODEL 3: **612.31**
+
+### Explanation of Model Coefficients:
+
+i. Intercept:
+Estimate: -0.8273
+The odds ratio is 0.4372, suggesting that the odds of purchase decrease by about 56.3% when all other predictors are zero.
+
+ii. LoyalCH:
+Estimate: -1.8632
+The odds ratio is 0.1552, indicating that a one-unit increase in 'LoyalCH' is associated with an 84.5% decrease in the odds of purchase.
+
+iii. PriceDiff:
+Estimate: -0.7188
+The odds ratio is 0.4873, suggesting that a one-unit increase in 'PriceDiff' is associated with a 51.3% decrease in the odds of purchase.
+
+
+## Model Comparision
+Following the concept of AIC values, a lower AIC value indicates a better model fit. Upon comparing the summaries of all three models and considering the AIC values, it is observed that Models 2 and 3 have very similar AIC values. However, Model 3 exhibits the lowest AIC value of 612.31. Consequently, it can be inferred that Model 3 is the most effective among the three. Upon interpreting the model summaries, the predictors LoyalCH and PriceDiff emerge as the most significant variables in the dataset.
+
+Below are the cumulative coefficient ranges derived from the above models for the most significant predictors
+
+| Variable  | Coefficient Range | Odds Ratio      |
+|:---------:|:-----------------:|:---------------:|
+| LoyalCH   | 1.92886 - 1.9323  |0.1552 - 0.1555  |
+| PriceDiff | 0.51731 - 0.6856  |0.4873 - 0.5926  |
+
+
+# Prediction and Accuracy of the Model
+
+```{r}
+
+# We will now calculate the accuracy of the predictions for Model 3 and examine the confusion matrix.
+
+model_prediction <- predict(log_model3, newdata=test_data)
+# Accuracy 
+model_accuracy <- table(model_prediction, test_data$Purchase)
+sum(diag(model_accuracy))/sum(model_accuracy)
+
+#Confusion Matrix
+cm <- caret::confusionMatrix(data=model_prediction,test_data$Purchase)
+
+plot(cm$table, main = "Confusion Matrix", col = "lightblue", labels = c("CH", "MM"))
+
+```
+
+```{r}
+# Here, we are seeking the ROC curve for the selected model
+
+log_roc_predictions <- predict(log_model3, newdata = test_data, type = "prob")[,1]
+log_roc_curve <- roc(test_data$Purchase, log_roc_predictions)
+
+# Calculate the AUC
+log_auc_value <- auc(log_roc_curve)
+
+# Print the AUC value
+cat("AUC:", log_auc_value)
+
+plot(log_roc_curve, col = "cyan", main = paste("ROC Curve (AUC =", round(auc(log_roc_curve), 3), ")"))
+
+```
+
+
+## Explanation of ROC AUC Curve 
+
+The ROC curve above shows the performance of a logistic regression model in predicting whether or not a customer will purchase Orange Juice of Minute Maid brand. The AUC of the curve is 0.918, which is considered to be a very good performance.
+
+The ROC curve plots the sensitivity, i.e, true positive rate versus the specificity i.e, true negative rate of our logistic model 3 at different classification thresholds. The sensitivity is the proportion of customers who purchase Minute Maid Orange juice that are correctly predicted by the model, while the specificity is the proportion of customers who did not purchase Minute Maid Orange juice that are correctly predicted by the model. 
+
+Getting an AUC of 0.918 for the logistic regression model shows that our choice of model and predictors is very good and our model is good at predicting whether or not a customer will purchase Minute Maid juice. 
+
+This means that this model can be used to help sales manager identify the probability of customers who are most likely to purchase Minute Maid Orange Juice, and can be used to target them with marketing campaigns, other promotions and offers.
+
+```{r warning=FALSE}
+
+log_explainer_rf <- explain_tidymodels(log_model3, 
+                                   data = train_data[,-1],
+                                   y = train_data$Purchase, 
+                                   type = "pdp",verbose = FALSE)
+
+log_pdp_1 <- model_profile(log_explainer_rf,
+                             variables = "LoyalCH", 
+                              N=NULL)
+
+
+log_pdp_2 <- model_profile(log_explainer_rf,
+                             variables = "PriceDiff", 
+                              N=NULL)
+
+grid.arrange(
+  plot(log_pdp_1), 
+  plot(log_pdp_2),
+  ncol = 2)
+
+
+```
+
+
+# XGBoost Model
+
+XGBoost, which stands for eXtreme Gradient Boosting, is a powerful and widely used machine learning algorithm for regression and classification tasks. It belongs to the class of ensemble learning algorithms, specifically boosting methods.
+
+Here, we will be employing the classification technique of XGBoost since our target variable is categorical with binary data.
+```{r}
+
+# Taking a copy of OJ and modifying the dataframe to fit in XGBoost Model
+
+xgb_ds <- OJ
+xgb_ds$SpecialCH <- as.numeric(xgb_ds$SpecialMM) - 1
+xgb_ds$SpecialMM <- as.numeric(xgb_ds$SpecialCH) - 1
+str(xgb_ds)
+
+# Splitting the data into training (70%) and testing (30%) sets for XGBOOST Model
+
+xgb_split <- initial_split(xgb_ds, prop = 0.7, strata = Purchase)
+xgb_train <- training(xgb_split)
+xgb_test  <- testing(xgb_split)
+
+```
+
+```{r}
+
+# We are using to the recipe() function to specify the target variable i.e 'Purchase' and using prep() to prepare the data according to the specifies recipe by applying the transformation to the training dataset.
+
+rec_purchase <- recipe(Purchase ~ . , xgb_ds) %>% prep(training = xgb_train)
+
+rec_purchase_f1 <- recipe(Purchase ~ PriceCH + LoyalCH + PctDiscMM + PctDiscCH + ListPriceDiff , xgb_ds) %>% prep(training = xgb_train)
+
+rec_purchase_f2 <- recipe(Purchase ~ LoyalCH + PriceDiff + ListPriceDiff + SpecialMM + PriceMM + SpecialCH + SalePriceCH , xgb_ds) %>% prep(training = xgb_train)
+  
+rec_purchase_f3 <- recipe(Purchase ~ LoyalCH + PriceDiff , xgb_ds) %>% prep(training = xgb_train)
+
+# Here, we are specifying the boosted tree model with hyper parameters to be tuned such as 'trees','tree_depth' and 'learn_rate' with the help of boost_tree() and using set_engine to specify the engine, i.e 'xgboost' and also setting the mode of the model as 'classification' using set_mode().
+
+model_boosted <- boost_tree(
+  trees = tune(),
+  tree_dept = tune(),
+  learn_rate = tune()) %>%
+  set_engine("xgboost",verbosity = 0) %>%
+  set_mode("classification")
+
+# Here, we are setting the Hyper parameter for the model as default and creating a 5-fold cross-validation plan for model evaluation 
+
+hyper_grid <- grid_regular(
+  trees(),
+  tree_depth(),
+  learn_rate(),
+  levels = 4
+)
+
+xgb_folds <- vfold_cv(xgb_train,v = 5)
+```
+
+```{r warning=FALSE}
+
+# Creating a modelling workflow and adding the model and recipe to the workflow.
+
+OJ_wf <- workflow() %>%
+  add_model(model_boosted) %>%
+  add_recipe(rec_purchase)
+
+OJ_wf_f1 <- workflow() %>%
+  add_model(model_boosted) %>%
+  add_recipe(rec_purchase_f1)
+
+OJ_wf_f2 <- workflow() %>%
+  add_model(model_boosted) %>%
+  add_recipe(rec_purchase_f2)
+
+OJ_wf_f3 <- workflow() %>%
+  add_model(model_boosted) %>%
+  add_recipe(rec_purchase_f3)
+```
+
+```{r}
+
+# Below we are tuning the hyper parameters using the specified grid and cross-validation plan and optimising it for the ROC-AUC.
+
+set.seed(1234)
+tune_OJ <- 
+  OJ_wf %>% 
+  tune_grid(
+    resamples = xgb_folds,
+    grid = hyper_grid,
+    metrics = metric_set(roc_auc)
+  ) 
+```
+
+
+```{r}
+tune_OJ_f1 <- 
+  OJ_wf_f1 %>% 
+  tune_grid(
+    resamples = xgb_folds,
+    grid = hyper_grid,
+    metrics = metric_set(roc_auc)
+  ) 
+```
+
+```{r}
+tune_OJ_f2 <- 
+  OJ_wf_f2 %>% 
+  tune_grid(
+    resamples = xgb_folds,
+    grid = hyper_grid,
+    metrics = metric_set(roc_auc)
+  ) 
+```
+
+```{r}
+tune_OJ_f3 <- 
+  OJ_wf_f3 %>% 
+  tune_grid(
+    resamples = xgb_folds,
+    grid = hyper_grid,
+    metrics = metric_set(roc_auc)
+  ) 
+
+```
+
+
+```{r}
+
+# Selecting the best model based on the ROC AUC metric and fitting the finalized workflow using the training dataset.
+
+best_model <- tune_OJ %>%
+  select_best("roc_auc")
+
+best_model_f1 <- tune_OJ_f1 %>%
+  select_best("roc_auc")
+
+best_model_f2 <- tune_OJ_f2 %>%
+  select_best("roc_auc")
+
+best_model_f3 <- tune_OJ_f3 %>%
+  select_best("roc_auc")
+
+final_workflow <- 
+  OJ_wf %>% 
+  finalize_workflow(best_model)
+
+final_workflow_f1 <- 
+  OJ_wf_f1 %>% 
+  finalize_workflow(best_model_f1)
+
+final_workflow_f2 <- 
+  OJ_wf_f2 %>% 
+  finalize_workflow(best_model_f2)
+
+final_workflow_f3 <- 
+  OJ_wf_f3 %>% 
+  finalize_workflow(best_model_f3)
+
+
+final_fit <- 
+  final_workflow %>%
+  last_fit(split = xgb_split)
+
+final_fit_f1 <- 
+  final_workflow_f1 %>%
+  last_fit(split = xgb_split)
+
+final_fit_f2 <- 
+  final_workflow_f2 %>%
+  last_fit(split = xgb_split)
+
+final_fit_f3 <- 
+  final_workflow_f3 %>%
+  last_fit(split = xgb_split)
+
+
+final_fit %>%
+  collect_metrics()
+
+final_fit_f1 %>%
+  collect_metrics()
+
+final_fit_f2 %>%
+  collect_metrics()
+
+final_fit_f3 %>%
+  collect_metrics()
+
+
+# Plotting the results of the model visually to identify which variables played an important role.
+
+xg_plot_list <- list(
+  final_workflow %>% fit(data = xgb_train) %>% extract_fit_parsnip() %>% vip(geom = "point") + ggtitle("Initial Model"),
+  final_workflow_f1 %>% fit(data = xgb_train) %>% extract_fit_parsnip() %>% vip(geom = "point") +ggtitle("Feature Set 1 "),
+  final_workflow_f2 %>% fit(data = xgb_train) %>% extract_fit_parsnip() %>% vip(geom = "point")+ggtitle("Feature Set 2 "),
+  final_workflow_f3 %>% fit(data = xgb_train) %>% extract_fit_parsnip() %>% vip(geom = "point")+ggtitle("Feature Set 3 ")
+)
+
+# Use grid.arrange to arrange the plots in a grid
+grid.arrange(grobs = xg_plot_list, ncol = 2)
+
+model_fitted <- final_workflow %>%
+  fit(data = xgb_train)
+
+model_fitted_f1 <- final_workflow_f1 %>%
+  fit(data = xgb_train)
+
+model_fitted_f2 <- final_workflow_f2 %>%
+  fit(data = xgb_train)
+
+model_fitted_f3 <- final_workflow_f3 %>%
+  fit(data = xgb_train)
+```
+
+```{r}
+
+xg_predictions <- model_fitted %>%
+  predict(xgb_test) %>%
+  bind_cols(xgb_test)
+
+
+xg_predictions_f1 <- model_fitted_f1 %>%
+  predict(xgb_test) %>%
+  bind_cols(xgb_test)
+
+xg_predictions_f2 <- model_fitted_f2 %>%
+  predict(xgb_test) %>%
+  bind_cols(xgb_test)
+
+xg_predictions_f3 <- model_fitted_f3 %>%
+  predict(xgb_test) %>%
+  bind_cols(xgb_test)
+
+xgb_accuracy <- xg_predictions %>%
+  metrics(truth = Purchase, estimate = .pred_class) %>%
+  filter(.metric == "accuracy") %>%
+  pull(.estimate)
+
+xgb_accuracy_f1 <- xg_predictions_f1 %>%
+  metrics(truth = Purchase, estimate = .pred_class) %>%
+  filter(.metric == "accuracy") %>%
+  pull(.estimate)
+
+xgb_accuracy_f2 <- xg_predictions_f2 %>%
+  metrics(truth = Purchase, estimate = .pred_class) %>%
+  filter(.metric == "accuracy") %>%
+  pull(.estimate)
+
+xgb_accuracy_f3 <- xg_predictions_f3 %>%
+  metrics(truth = Purchase, estimate = .pred_class) %>%
+  filter(.metric == "accuracy") %>%
+  pull(.estimate)
+
+
+cat("Accuracy of Initial Model: ", xgb_accuracy)
+cat("\nAccuracy of Feature 1 Model: ",xgb_accuracy_f1)
+cat("\nAccuracy of Feature 2 Model: ",xgb_accuracy_f2)
+cat("\nAccuracy of Feature 3 Model: ",xgb_accuracy_f3, "\n")
+
+
+
+```
+
+```{r warning=FALSE}
+# Converting pred_class to numeric to plot roc-auc plot 
+
+xg_predictions <- xg_predictions %>%
+  mutate(.pred_class = as.numeric(as.character(.pred_class)))
+
+xg_predictions_f1 <- xg_predictions_f1 %>%
+  mutate(.pred_class = as.numeric(as.character(.pred_class)))
+
+xg_predictions_f2 <- xg_predictions_f2 %>%
+  mutate(.pred_class = as.numeric(as.character(.pred_class)))
+
+xg_predictions_f3 <- xg_predictions_f3 %>%
+  mutate(.pred_class = as.numeric(as.character(.pred_class)))
+
+
+# Create a ROC curve object
+roc_curve <- roc(xg_predictions$Purchase, xg_predictions$.pred_class)
+
+# Plot the ROC curve
+plot(roc_curve, col = "blue", main = paste("ROC Curve for all Features (AUC =", round(auc(roc_curve), 3), ")"))
+
+
+# ROC-AUC Curve for Feature Set 1
+roc_curve_f1 <- roc(xg_predictions_f1$Purchase, xg_predictions_f1$.pred_class)
+
+# Plot the ROC curve
+plot(roc_curve_f1, col = "blue", main = paste("ROC Curve for Feature Set 1 (AUC =", round(auc(roc_curve_f1), 3), ")"))
+
+
+# ROC-AUC Curve for Feature Set 2
+roc_curve_f2 <- roc(xg_predictions_f2$Purchase, xg_predictions_f2$.pred_class)
+
+# Plot the ROC curve
+plot(roc_curve_f2, col = "blue", main = paste("ROC Curve for Feature Set 2 (AUC =", round(auc(roc_curve_f2), 3), ")"))
+
+
+# ROC-AUC Curve for Feature Set 3
+roc_curve_f3 <- roc(xg_predictions_f3$Purchase, xg_predictions_f3$.pred_class)
+
+# Plot the ROC curve
+plot(roc_curve_f3, col = "blue", main = paste("ROC Curve for Feature Set 3 (AUC =", round(auc(roc_curve_f3), 3), ")"))
+
+```
+
+## Explanation of ROC AUC Curve
+
+The ROC curve above shows the performance of an XGBoost model with classification technique in predicting whether or not a customer will purchase Orange Juice of Minute Maid brand. The AUC of the curve is 0.787, which is considered to be a very good performance. 
+
+The AUC of 0.787 for the XGBoost model with classification technique indicates that it is very good at predicting whether or not a customer will purchase Minute Maid Orange juice. This means that the model can be used to identify customers who are most likely to purchase Minute Maid juice, which can be used to target them with marketing campaigns or other promotions.
+
+
+
+```{r warning=FALSE}
+
+# Using PDP appropriate interpretation 
+
+explainer_rf <- explain_tidymodels(model_fitted_f3, 
+                                   data = xgb_train[,-1],
+                                   y = xgb_train$Purchase, 
+                                   type = "pdp",verbose = FALSE)
+
+var1_pdp <- model_profile(explainer_rf,
+                             variables = "LoyalCH", 
+                              N=NULL)
+var2_pdp <- model_profile(explainer_rf,
+                                variables = "PriceDiff",
+                                N=NULL)
+
+grid.arrange(
+  plot(var1_pdp),
+  plot(var2_pdp),
+   ncol = 2)
+```
+
+
+## Explanation of PDP for LoyalCH
+The partial dependence profile (PDP) shows the average change in the prediction of the target variable (Purchase) as the predictor variable (LoyalCH) changes, while keeping all other variables constant. In this case, the PDP shows that customers who are more loyal to the Citrus Hill brand are less likely to purchase Minute Maid orange juice. The average prediction of Purchase decreases from 0.75 to 0.25 as LoyalCH increases from 0 to 1.
+
+The PDP also shows that the relationship between LoyalCH and Purchase is non-linear. The average prediction of Purchase decreases more rapidly at lower levels of LoyalCH than at higher levels of LoyalCH. This suggests that Citrus Hill may be more effective at targeting customers who are less loyal to their brand.
+
+## Explanation of PDP for PriceDiff
+
+The PDP shows the relationship between the variable PriceDiff and the target variable Purchase. It shows that the probability of a customer purchasing Minute Maid orange juice increases as the price difference between Minute Maid and Citrus Hill increases. This means that customers are more likely to purchase Minute Maid orange juice when it is cheaper than Citrus Hill.
+
+The PDP also shows that the probability of purchase reaches a maximum at a price difference of around 0.2. This means that the price difference between Minute Maid and Citrus Hill has the greatest impact on the probability of purchase when it is around 0.2. Beyond this point, the probability of purchase remains relatively stable.
