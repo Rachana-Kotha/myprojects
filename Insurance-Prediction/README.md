@@ -1,68 +1,123 @@
-# Predict medical insurance costs with machine learning and ANN
+# Predict Medical Insurance Costs with Machine Learning and Artificial Neural Networks
 
-## Summary
+## Overview
 
-The objective is to predict the health insurance cost incurred by individuals based on their age, gender, Body Mass Index (BMI), number of children, smoking habits, and geo-location.
+This project focuses on predicting individual medical insurance charges using both traditional machine learning and deep learning techniques. The objective is to estimate healthcare costs based on demographic and lifestyle factors such as age, gender, BMI, number of children, smoking status, and geographic location.
 
-## Dataset
+The aim is twofold:
+- To explore the statistical relationships between features influencing insurance costs.
+- To compare the performance of a Linear Regression model and an Artificial Neural Network (ANN) model for prediction accuracy.
 
-The dataset used in this project is `insurance.csv`, which contains the following features:
-- `age`: Age of the individual
-- `sex`: Gender of the individual (male/female)
-- `bmi`: Body Mass Index
-- `children`: Number of children/dependents
-- `smoker`: Smoking status (yes/no)
-- `region`: Residential area (northeast, northwest, southeast, southwest)
-- `charges`: Medical insurance cost
+---
 
-## Project Steps
+## Dataset Description
 
-1. **Data Loading and Exploration**:
-   - Load the dataset and display its basic information.
-   - Check for missing values and get a statistical summary of the data.
+The dataset used is `insurance.csv`, which contains 1,338 records of insurance data. Each row represents an individual and includes the following features:
 
-2. **Data Preprocessing**:
-   - Encode categorical variables (`sex`, `smoker`, and `region`) into numerical values.
-   - Visualize the data distribution and relationships between features.
+| Feature     | Description                                                              |
+|-------------|--------------------------------------------------------------------------|
+| `age`       | Age of the individual                                                    |
+| `sex`       | Gender of the individual (`male` / `female`)                             |
+| `bmi`       | Body Mass Index                                                          |
+| `children`  | Number of children or dependents                                         |
+| `smoker`    | Smoking status of the individual (`yes` / `no`)                          |
+| `region`    | Residential area (`northeast`, `southeast`, `southwest`, `northwest`)    |
+| `charges`   | Annual medical insurance charges (target variable)                       |
 
-3. **Correlation Analysis**:
-   - Calculate and visualize the correlation matrix to understand relationships between variables.
+---
 
-4. **Feature Scaling**:
-   - Standardize the feature matrix and target vector to improve model performance.
+## Workflow and Methodology
 
-5. **Model Training and Evaluation**:
-   - Split the data into training and testing sets.
-   - Train a Linear Regression model and evaluate its performance using various metrics (RSME, MSE, MAE, R2).
+### 1. Data Loading and Initial Exploration
 
-6. **Building and Training an ANN**:
-   - Build an Artificial Neural Network (ANN) model using TensorFlow and Keras.
-   - Train the ANN model and evaluate its performance.
+- Loaded the dataset using `pandas`.
+- Verified data integrity and checked for missing values.
+- Reviewed summary statistics and data types.
 
-## Libraries Used
+### 2. Data Preprocessing
 
-- pandas
-- numpy
-- seaborn
-- matplotlib
-- scikit-learn
-- tensorflow
-- keras
+- Encoded categorical features (`sex`, `smoker`, `region`) into numerical format.
+- Performed exploratory data analysis with visualizations to understand patterns and distributions.
+
+### 3. Correlation Analysis
+
+- Built a correlation matrix to examine relationships between input features and the target (`charges`).
+- Identified key variables that heavily influence insurance costs such as `smoker`, `age`, and `bmi`.
+
+### 4. Feature Scaling
+
+- Standardized the feature set using `StandardScaler` to improve model convergence and performance.
+
+### 5. Model Training and Evaluation
+
+#### Linear Regression
+
+- Split data into training and test sets (80/20).
+- Trained a Linear Regression model using `scikit-learn`.
+- Evaluated the model using common regression metrics.
+
+#### Artificial Neural Network (ANN)
+
+- Built a feedforward neural network using TensorFlow and Keras.
+- Network architecture:
+  - Input layer with 6 features
+  - Two hidden layers with ReLU activation
+  - Output layer for continuous prediction
+- Trained the model and validated its performance.
+
+---
+
+## Key Visualizations
+
+### Charges vs. Smoking Status
+
+![Charges vs Smoker](images/charges_vs_smoker.png)
+
+### BMI Distribution by Smoking Status
+
+![BMI vs Smoker](images/bmi_vs_smoker.png)
+
+### Correlation Heatmap
+
+![Correlation Heatmap](images/correlation_heatmap.png)
+
+These visualizations demonstrate that smoking status is a major factor influencing insurance charges, followed by BMI and age.
+
+---
+
+## Libraries and Tools Used
+
+- `pandas`
+- `numpy`
+- `seaborn`
+- `matplotlib`
+- `scikit-learn`
+- `tensorflow`
+- `keras`
+
+---
 
 ## Evaluation Metrics
 
-The performance of the models is evaluated using the following metrics
+| Metric       | Description                                                                 |
+|--------------|-----------------------------------------------------------------------------|
+| MAE          | Mean Absolute Error: average of absolute errors between predicted and true values |
+| MSE          | Mean Squared Error: average of squared errors between predicted and actual values |
+| RMSE         | Root Mean Squared Error: square root of MSE, gives error in original units |
+| R² Score     | R-squared: proportion of variance in target explained by input features     |
 
-	- Root Mean Squared Error (RMSE):
-	• Measures the average magnitude of the errors between predicted and actual values.
-	- Mean Squared Error (MSE):
-	• Measures the average of the squares of the errors between predicted and actual values.
-	- Mean Absolute Error (MAE):
-	• Measures the average magnitude of the errors between predicted and actual values.
-	- R-squared (R2 Score):
-	• Indicates the proportion of the variance in the dependent variable that is predictable from the independent variables.
+---
+
+## Conclusion
+
+This project demonstrates how both statistical learning and deep learning techniques can be used to predict healthcare costs. The Linear Regression model provides a simple and interpretable baseline, while the ANN captures more complex nonlinear relationships in the data.
+
+Key takeaways:
+- Smoking is the most influential factor on insurance charges.
+- BMI and age are also strong predictors.
+- The ANN slightly outperforms Linear Regression in predictive accuracy, showing its capability to model deeper patterns in the data.
 
 
- ## Conclusion
-
-The project predicted medical insurance costs using Machine Learning and deep learning models. Both linear regression and artificial neural network models provide insights into the factors influencing insurance costs, with evaluation metrics indicating the performance of each model.
+## Author
+Rachana Kotha
+This project work provides a foundation for cost forecasting models in the health insurance domain.
