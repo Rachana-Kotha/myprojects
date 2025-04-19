@@ -29,13 +29,13 @@ In the data cleaning step the data quality of the following datasets were first 
   - Checked whether there are duplicate records present in the dataset. In this dataset there were no duplicate records.
 - <b>NewCustomerList.xlsx</b> :
   - 5 Irrelevent column was present and such columns were dropped from the dataset.
-  - There were 4 columns were Missing values were present. For such columns based on the volumne of the missing values either the records were dropped or appropiate values were imputed at places of missing values
+  - There were 4 columns where Missing values were present. For such columns based on the volumne of the missing values either the records were dropped or appropiate values were imputed at places of missing values
   - The Date of Birth column was transformed to create a new feature column 'Age' and 'Age Group' to check for discripency of age distribution.
   - There was no data inconsistency.
   - Checked whether there are duplicate records present in the dataset. In this dataset there were no duplicate records.
 - <b>Transaction_data.xlsx </b>:
   - The product_first_sold_date column is not in datetime format. The data type of this column was changed from int64 to datetime format.
-  - There were 7 columns were Missing values were present. For such columns based on the volumne of the missing values either the records were dropped or appropiate values were imputed at places of missing values
+  - There were 7 columns where Missing values were present. For such columns based on the volumne of the missing values either the records were dropped or appropiate values were imputed at places of missing values
   - A new feature column 'Profit' was created which is basically the difference between list price and standard price.
   - There was no data inconsistency.
   - Checked whether there are duplicate records present in the dataset. In this dataset there were no duplicate records.
