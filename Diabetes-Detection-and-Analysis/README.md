@@ -53,7 +53,7 @@ The dataset used is the **Pima Indians Diabetes dataset**, which includes medica
 Based on the visualizations and summary statistics:
 
 - **Glucose** levels showed the most significant separation between diabetic and non-diabetic groups. Higher glucose levels are closely associated with diabetes.
-- A large number of zero values in `Insulin` and `SkinThickness` could significantly affect model accuracy and need to be handled appropriately.
+- A large number of zero values in `Insulin` and `SkinThickness` could significantly affect model accuracy and needed to be handled appropriately.
 - **BMI** and **Age** tend to be higher for individuals with diabetes.
 - The correlation matrix revealed that **Glucose**, **BMI**, and **Age** have the strongest correlations with the outcome variable, though none are extremely high.
 - Boxplots showed noticeable differences in the distributions of several features between the two outcome groups, reaffirming the need for proper feature scaling and data treatment prior to modeling.
