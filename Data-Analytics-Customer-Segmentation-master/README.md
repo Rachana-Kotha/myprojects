@@ -23,7 +23,7 @@ The first step towards generating useful insights from the data was the data pre
 In the data cleaning step the data quality of the following datasets were first assesed. After a data quality assessment the following data quality issues was observed and the necessary process to mitigate the issue was followed :
 - <b>CustomerDemographics.xlsx</b> :
   - 1 Irrelevent column was present and such columns were dropped from the dataset.
-  - There were 5 columns were Missing values were present. For such columns based on the volumne of the missing values either the records were dropped or appropiate values were imputed at places of missing values
+  - There were 5 columns where Missing values were present. For such columns based on the volumne of the missing values either the records were dropped or appropiate values were imputed at places of missing values
   - For gender column there was no standardisation of data. Based on the values available the column data was standardised to remove data inconsistency.
   - The Date of Birth column was transformed to create a new feature column 'Age' and 'Age Group' to check for discripency of age distribution. An <b>outlier</b> was observed and the record was removed.
   - Checked whether there are duplicate records present in the dataset. In this dataset there were no duplicate records.
