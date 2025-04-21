@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a preliminary exploratory data analysis (EDA) exercise using the **Pima Indians Diabetes Dataset**. The primary goal was to better understand the structure of the data, clean and visualize it using Python, and uncover any significant patterns related to diabetes outcomes. 
+This project is a preliminary exploratory data analysis (EDA) exercise using the **[Pima Indians Diabetes Dataset](https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database)**. The primary goal was to better understand the structure of the data, clean and visualize it using Python, and uncover any significant patterns related to diabetes outcomes. 
 
 The analysis follows a simplified version of the **OSEMN** framework (Obtain, Scrub, Explore, Model, and Interpret), with a focus on data acquisition, cleaning, and exploration. While this version does not include predictive modeling, it sets the foundation for potential machine learning applications in future work.
 
