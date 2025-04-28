@@ -42,7 +42,7 @@ The objective of this project is to perform an exploratory data analysis (EDA) o
 ## Approach
 
 1. **Data Acquisition and Loading**  
-   - The dataset `database.json` was sourced from the USDA National Nutrient Database which can be found in my repository via [Rachana's PyData GitHub repository]([https://github.com/wesm/pydata-book/tree/2nd-edition/datasets/usda_food](https://github.com/Rachana-Kotha/myprojects/blob/main/USDA-Food-nutrient-predictor/database.json)).
+   - The dataset `database.json` was sourced from the USDA National Nutrient Database which can be found in my repository via [Rachana's PyData GitHub repository]([https://github.com/Rachana-Kotha/myprojects/blob/main/USDA-Food-nutrient-predictor/database.json]).
    - It contains 6,636 food items with nested nutrient information.
 
 2. **Data Inspection and Parsing**  
