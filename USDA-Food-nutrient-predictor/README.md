@@ -91,7 +91,7 @@ The cleaned and merged dataset (`ndata`) includes the following columns:
 - **Food Group Distribution:**  
   Certain groups like “Vegetables and Vegetable Products” and “Dairy and Egg Products” have higher representation in the dataset.
 
-<img src="USDA-Food-nutrient-predictor/countsvsgroup.png" height="400" align="center">
+<img src="/countsvsgroup.png" height="400" align="center">
 
 - **Nutrient Leaders:**  
   Some individual food items significantly stand out in terms of nutrient density (e.g., high protein cheese or vitamin-rich leafy greens).
