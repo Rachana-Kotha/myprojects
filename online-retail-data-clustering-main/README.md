@@ -1,81 +1,145 @@
-# Online Retail Data Clustering Project
+Online Retail Data Clustering Project
+Project Overview
+This project focuses on designing and implementing a complete Machine Learning Solution for clustering online retail customer data.
+The objective is to segment customers based on purchasing behavior using unsupervised learning techniques, while managing the end-to-end ML lifecycle through Azure Machine Learning (AML).
 
+The project covers data exploration, model training, model evaluation, deployment preparation, and MLOps practices, using Azure services like Compute Instances, Data Assets, Pipelines, and MLflow for tracking.
 
-1) Design and prepare a machine learning solution (20-25%)
-Design a machine learning solution
-Determine the appropriate compute specifications for a training workload
-Describe model deployment requirements
-Select which development approach to use to build or train a model
-Manage an Azure Machine Learning workspace
-Create an Azure Machine Learning workspace
-Manage a workspace by using developer tools for workspace interaction
-Set up Git integration for source control
-Create and manage registries
-Manage data in an Azure machine-learning workspace
-Select Azure Storage resources
-Register and maintain data stores
-Create and manage data assets
-Manage compute for experiments in Azure Machine Learning
-Create compute targets for experiments and training
-Select an environment for a machine learning use case
-Configure attached compute resources, including Azure Synapse Spark pools and serverless Spark compute
-Monitor compute utilization
-2) Explore data and train models (35-40%)
-Explore data by using data assets and data stores
-Access and wrangle data during interactive development
-Wrangle interactive data with attached Synapse Spark pools and serverless Spark compute
-Create models by using the Azure Machine Learning designer
-Create a training pipeline
-Consume data assets from the designer
-Use custom code components in the designer
-Evaluate the model, including responsible AI guidelines
-Use automated machine learning to explore optimal models
-Use automated machine learning for tabular data
-Use automated machine learning for computer vision
-Use automated machine learning for natural language processing
-Select and understand training options, including preprocessing and algorithms
-Evaluate an automated machine learning run, including responsible AI guidelines
-Use notebooks for custom model training
-Develop code by using a compute instance
-Track model training by using MLflow
-Evaluate a model
-Train a model by using Python SDK v2
-Use the terminal to configure a compute instance
-Tune hyperparameters with Azure Machine Learning
-Select a sampling method
-Define the search space
-Define the primary metric
-Define early termination options
-3) Prepare a model for deployment (20-25%)
-Run model training scripts
-Configure job run settings for a script
-Configure compute for a job run
-Consume data from a data asset in a job
-Run a script as a job by using Azure Machine Learning
-Use MLflow to log metrics from a job run
-Use logs to troubleshoot job run errors
-Configure an environment for a job run
-Define parameters for a job
-Implement training pipelines
-Create a pipeline
-Pass data between steps in a pipeline
-Run and schedule a pipeline
-Monitor pipeline runs
-Create custom components
-Use component-based pipelines
-Manage models in Azure Machine Learning
-Describe the MLflow model output
-Identify an appropriate framework to package a model
-Assess a model by using responsible AI principles
-4) Deploy and retrain a model (10-15%)
-Deploy a model
-Configure settings for online deployment
-Configure compute for a batch deployment
-Deploy a model to an online endpoint
-Deploy a model to a batch endpoint
-Test an online deployed service
-Invoke the batch endpoint to start a batch scoring job
-Apply machine learning operations (MLOps) practices
-Trigger an Azure Machine Learning job, including from Azure DevOps or GitHub
-Automate model retraining based on new data additions or data changes
-Define event-based retraining triggers
+Project Plan
+
+Phase	Description
+1. Workspace Management	Created and configured an Azure ML Workspace and connected GitHub for source control.
+2. Data Management	Registered online retail datasets into AML using Azure Storage and created versioned data assets.
+3. Compute Management	Set up compute targets: CPU compute instances, serverless Spark pools, and configured environments for scalable model training.
+4. Data Exploration	Wrangled and preprocessed data using Spark compute; addressed missing values, outliers, and standardized features.
+5. Model Training	Designed and trained clustering models using Azure ML Designer and Notebooks; implemented AutoML for model selection.
+6. Model Evaluation	Evaluated clustering performance (e.g., silhouette score) and ensured responsible AI practices.
+7. Deployment Preparation	Packaged and registered the final model; logged metrics via MLflow; created training pipelines with job configurations.
+8. Deployment and MLOps	Deployed models to Azure online endpoints and batch endpoints; implemented retraining triggers using Azure DevOps and event-based pipelines.
+Data Preparation
+Source: Online Retail Transaction Dataset
+
+Preprocessing Steps:
+
+Removed null and duplicate entries.
+
+Engineered features like TotalSpend, Frequency, Recency for RFM Analysis.
+
+Normalized variables to improve clustering.
+
+Created train/test datasets as AML data assets.
+
+Modeling Approach
+Algorithms Used:
+
+KMeans Clustering
+
+Hierarchical Clustering (exploratory)
+
+DBSCAN (alternative approach for density-based clustering)
+
+Tools:
+
+Azure ML Designer for drag-and-drop model pipelines
+
+Automated ML for model and hyperparameter optimization
+
+Python SDK v2 for advanced custom training scripts
+
+Tracking:
+
+Used MLflow to log:
+
+Clustering metrics
+
+Hyperparameters
+
+Model artifacts
+
+Deployment Strategy
+Model Registration:
+
+Packaged the best model (KMeans) into the Azure ML Model Registry.
+
+Online Deployment:
+
+Created an Azure Online Endpoint for real-time scoring.
+
+Batch Deployment:
+
+Configured a Batch Endpoint to process large customer datasets periodically.
+
+Retraining Strategy:
+
+Scheduled model retraining based on new data arrival triggers.
+
+Integrated retraining pipelines with Azure DevOps for CI/CD.
+
+Observations
+Cluster Insights:
+
+Found meaningful customer segments such as:
+
+High-value repeat customers
+
+Infrequent but high-spending customers
+
+Discount seekers
+
+Performance:
+
+Best model (KMeans) achieved a Silhouette Score of 0.65, indicating reasonable cluster separation.
+
+Challenges:
+
+Sparse transactional data required careful feature engineering.
+
+Choosing the optimal number of clusters (k) involved using the elbow method and silhouette analysis.
+
+Tech Stack
+Language: R, Python
+
+Cloud Platform: Azure Machine Learning
+
+Compute: Azure Compute Instances, Serverless Spark Pools
+
+Source Control: GitHub Integration
+
+Tracking and Logging: MLflow
+
+Pipelines: Azure ML Pipelines (Component-based architecture)
+
+Deployment: Azure Online Endpoints and Batch Endpoints
+
+How to Reproduce
+Clone the Repository:
+
+bash
+Copy
+Edit
+git clone <repository_link>
+Set Up Azure ML Workspace:
+
+Create a new Azure ML Workspace.
+
+Attach a Compute Instance and a Serverless Spark Pool.
+
+Register Data Assets:
+
+Upload and register the Online Retail Dataset as a data asset.
+
+Run Training Pipelines:
+
+Launch the pipeline from Azure ML Studio or use the provided notebooks to train models.
+
+Model Evaluation:
+
+View evaluation metrics logged through MLflow in Azure ML Studio.
+
+Deploy the Model:
+
+Deploy the trained model to an Online or Batch Endpoint.
+
+Set Up Retraining:
+
+Configure triggers for retraining through Azure DevOps Pipelines.
