@@ -89,12 +89,14 @@ The cleaned and merged dataset (`ndata`) includes the following columns:
 ## Observations
 
 - **Food Group Distribution:**  
-  Certain groups like “Vegetables and Vegetable Products” and “Dairy and Egg Products” have higher representation in the dataset.
+  Certain groups like “Vegetables and Vegetable Products” and “Beef Products” have higher representation in the dataset.
 
 <img src="/USDA-Food-nutrient-predictor/countsvsgroup.png" height="400" align="center">
 
 - **Nutrient Leaders:**  
   Some individual food items significantly stand out in terms of nutrient density (e.g., high protein cheese or vitamin-rich leafy greens).
+
+<img src="/USDA-Food-nutrient-predictor/medianbynutrientgroup.png" height="400" align="center">
 
 - **Group-wise Nutrient Trends:**  
   - Meats typically have higher protein content.
