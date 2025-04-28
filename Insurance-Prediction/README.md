@@ -71,15 +71,15 @@ The dataset used is `insurance.csv`, which contains 1,338 records of insurance d
 
 ### Charges vs. Smoking Status
 
-![Charges vs Smoker](images/charges_vs_smoker.png)
+![Charges vs Smoker](/Smokers_Vs_Expenses.png)
 
 ### BMI Distribution by Smoking Status
 
-![BMI vs Smoker](images/bmi_vs_smoker.png)
+![Age vs Expenses](/age_Vs_expenses.png)
 
 ### Correlation Heatmap
 
-![Correlation Heatmap](images/correlation_heatmap.png)
+![Correlation Heatmap](/CorrelationHeatmap.png)
 
 These visualizations demonstrate that smoking status is a major factor influencing insurance charges, followed by BMI and age.
 
