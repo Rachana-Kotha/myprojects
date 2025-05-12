@@ -69,11 +69,11 @@ The dataset used is `insurance.csv`, which contains 1,338 records of insurance d
 
 ## Key Visualizations
 
-### Charges vs. Smoking Status
+### Expenses vs. Smoking Status
 
 ![Charges vs Smoker](/Insurance-Prediction/SmokersVsExpenses.png)
 
-### BMI Distribution by Smoking Status
+### Expenses by Age
 
 ![Age vs Expenses](/Insurance-Prediction/ageVsexpenses.png)
 
